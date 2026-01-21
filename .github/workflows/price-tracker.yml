@@ -1,0 +1,44 @@
+name: ARB Price Tracker
+
+on:
+  schedule:
+    # Run every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  track-price:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore ATL cache
+        uses: actions/cache/restore@v4
+        with:
+          path: atl_data.json
+          key: atl-data-${{ github.run_id }}
+          restore-keys: |
+            atl-data-
+
+      - name: Run price tracker
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python arb_tracker.py
+
+      - name: Save ATL cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: atl_data.json
+          key: atl-data-${{ github.run_id }}

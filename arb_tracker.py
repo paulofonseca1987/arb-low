@@ -2,7 +2,7 @@
 """
 ARB Token All-Time Low Price Tracker
 
-Monitors the ARB (Arbitrum) token price via Binance API and sends a Telegram
+Monitors the ARB (Arbitrum) token price via Coinbase API and sends a Telegram
 notification whenever a new all-time low is reached.
 
 Designed to run as a GitHub Action every 5 minutes, checking prices every second.
@@ -23,25 +23,23 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 RUN_DURATION = int(os.getenv("RUN_DURATION", "295"))  # seconds (slightly under 5 min)
 CHECK_INTERVAL = float(os.getenv("CHECK_INTERVAL", "1"))  # seconds
 
-# Binance API endpoint for ARB/USDT
-BINANCE_API_URL = "https://api.binance.com/api/v3/ticker/price"
-SYMBOL = "ARBUSDT"
+# Coinbase API endpoint for ARB/USD (works from US IPs, unlike Binance)
+COINBASE_API_URL = "https://api.coinbase.com/v2/prices/ARB-USD/spot"
 
 # File to persist ATL data (cached between GitHub Actions runs)
 ATL_DATA_FILE = Path(__file__).parent / "atl_data.json"
 
 
 def get_arb_price() -> float | None:
-    """Fetch the current ARB token price from Binance."""
+    """Fetch the current ARB token price from Coinbase."""
     try:
         response = requests.get(
-            BINANCE_API_URL,
-            params={"symbol": SYMBOL},
+            COINBASE_API_URL,
             timeout=5,
         )
         response.raise_for_status()
         data = response.json()
-        return float(data["price"])
+        return float(data["data"]["amount"])
     except (requests.RequestException, KeyError, ValueError) as e:
         print(f"Error fetching price: {e}")
         return None
@@ -139,7 +137,7 @@ def validate_config() -> bool:
 
 def main() -> None:
     """Main entry point - runs for RUN_DURATION seconds checking every second."""
-    print("ARB Token All-Time Low Tracker (Binance)")
+    print("ARB Token All-Time Low Tracker (Coinbase)")
     print("=" * 50)
 
     if not validate_config():
